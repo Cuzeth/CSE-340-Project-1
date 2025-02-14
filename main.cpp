@@ -1,126 +1,159 @@
 /*----------------------------------------------------------------------
-A basic lexer with a getToken function which assumes the input
-string consists of identifiers, numbers, and operators.
+A basic lexer that reads token definitions and an input string from a file.
+Usage:
+   g++ -std=c++17 *.cpp
+   ./a.out < charstream.txt > output.txt
+Format:
+    t1_name t1_regex , t2_name t2_regex , ... , tk_name tk_regex #
+    "string"
+----------------------------------------------------------------------*/
 
-g++ -std=c++11 DFA.cpp simple_lexerDFA.cpp
-./a.out < charstream.txt > output.txt
-more output.txt
-------------------------------------------------------------------------*/
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include <cctype>
 #include "DFA.h"
+#include "NFA.h"
+#include "shunting.h"
 
 using namespace std;
 
-
-//--------------------------------------------------------------
-// enum TokenType
-//--------------------------------------------------------------
-enum TokenType { R0, R1, R2, R3, R4, EOS, INVALID };
-
-const string tokenNames[] = { "R0", "R1", "R2", "R3", "R4", "EOS", "INVALID" };
-
-//--------------------------------------------------------------
-// class Token
-//--------------------------------------------------------------
 class Token {
 public:
-    Token(TokenType t, string v) : type(t), value(v) {};
-    Token() : type(EOS), value("") {};
+    Token(string t, string l) : tokenName(t), lexeme(l) {}
+    Token() : tokenName("EOS"), lexeme("") {}
 
-    TokenType type;
-    string value;
+    string tokenName;
+    string lexeme;
 };
 
+DFA regexToDFA(const string& regex) {
+    // convert regex from infix to postfix notation
+    string postfix = InfixToPostfix(regex);
+    // build the NFA from the postfix regex
+    NFA nfa = PostfixToNFA(postfix);
+    // convert the NFA to a DFA
+    return nfa.NFA2DFA();
+}
+
 //--------------------------------------------------------------
-// class Lexer
+// reads a token definition string and an input string
+// token definitions are stored in order as a vector of (token name, DFA)
 //--------------------------------------------------------------
 class Lexer {
 public:
-    Lexer(const string& input);
+    Lexer(const string& tokenDefs, const string& input);
     Token getToken();
 private:
     string input;
     size_t pos;
-
-    DFA R0_token;
-    DFA R1_token;
+    vector<pair<string, DFA>> tokenDFAs;
 };
 
-
-Lexer::Lexer(const string& input) : input(input), pos(0) {
-    // DFA accepting (a|b)*abb
-    DFA dfa_R0({'a', 'b'}, {0}, {3});
-    dfa_R0.AddTransition( 0, 1, 'a');
-    dfa_R0.AddTransition( 0, 0, 'b');
-    dfa_R0.AddTransition( 1, 1, 'a');
-    dfa_R0.AddTransition( 1, 2, 'b');
-    dfa_R0.AddTransition( 2, 1, 'a');
-    dfa_R0.AddTransition( 2, 3, 'b');
-    dfa_R0.AddTransition( 3, 1, 'a');
-    dfa_R0.AddTransition( 3, 0, 'b');
-    R0_token = dfa_R0;
-
-    // DFA accepting aa*|bb*
-    DFA dfa_R1({'a', 'b'}, {0}, {1,2});
-    dfa_R1.AddTransition( 0, 1, 'a');
-    dfa_R1.AddTransition( 0, 2, 'b');
-    dfa_R1.AddTransition( 1, 1, 'a');
-    dfa_R1.AddTransition( 1, -1, 'b');
-    dfa_R1.AddTransition( 2, -1, 'a');
-    dfa_R1.AddTransition( 2, 2, 'b');
-    R1_token = dfa_R1;
-
+Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0) {
+    // tokenDefs is a string like:
+    //   "t1 a|b , t2 a*.a , t3 (a|b)*.c*.c #"
+    istringstream iss(tokenDefs);
+    string tokenDef;
+    while(getline(iss, tokenDef, ',')) {
+        // trim leading/trailing whitespace
+        size_t start = tokenDef.find_first_not_of(" \t");
+        if(start == string::npos)
+            continue;
+        size_t end = tokenDef.find_last_not_of(" \t");
+        string trimmed = tokenDef.substr(start, end - start + 1);
+        // stop if we hit the end marker '#'
+        if(trimmed == "#" || trimmed.find('#') != string::npos)
+            break;
+        // expecting: tokenName regex
+        istringstream iss2(trimmed);
+        string tokenName;
+        string regex;
+        iss2 >> tokenName;
+        getline(iss2, regex); // the rest is the regex
+        // remove any leading spaces from the regex
+        size_t s2 = regex.find_first_not_of(" \t");
+        if(s2 != string::npos)
+            regex = regex.substr(s2);
+        // build the DFA
+        DFA dfa = regexToDFA(regex);
+        tokenDFAs.push_back({tokenName, dfa});
+    }
 }
 
-
-//--------------------------------------------------------------
-// return next token from the input string
-//--------------------------------------------------------------
 Token Lexer::getToken() {
-    //---- reset tokens
-    R0_token.Reset();
-    R1_token.Reset();
-
-    //---- Skip whitespace
-    while (pos < input.size() && isspace(input[pos])) pos++;
-
-    //---- check for EOS
-    if (pos == input.size()) return Token(EOS, "");
-
-    //---- read until whitespace
-    while (pos < input.size() && !isspace(input[pos])) {
-        //---- try to move all DFAs
-        R0_token.Move(input[pos]);
-        R1_token.Move(input[pos]);
+    // skip whitespace
+    while (pos < input.size() && isspace(input[pos]))
         pos++;
+    if (pos >= input.size())
+        return Token("EOS", "");
+
+    int bestLength = 0;
+    string bestToken;
+    string bestLexeme;
+
+    // simulate its DFA from the current input position
+    for(auto& tokenDef : tokenDFAs) {
+        string tokenName = tokenDef.first;
+        DFA dfa = tokenDef.second; // copy so that we don't modify the stored DFA
+        dfa.Reset();
+        int currentPos = pos;
+        int acceptedLength = 0;
+        string acceptedLex;
+        // process input characters until fail
+        while (currentPos < input.size()) {
+            char c = input[currentPos];
+            dfa.Move(c);
+            if(dfa.GetStatus() == FAIL)
+                break;
+            if(dfa.GetStatus() == ACCEPT) {
+                acceptedLength = currentPos - pos + 1;
+                acceptedLex = dfa.GetAcceptedLexeme();
+            }
+            currentPos++;
+        }
+        if(acceptedLength > bestLength) {
+            bestLength = acceptedLength;
+            bestToken = tokenName;
+            bestLexeme = acceptedLex;
+        }
     }
 
-    //---- check status of all DFAs
-    if (R0_token.GetAccepted()) {
-        return Token(R0, R0_token.GetAcceptedLexeme());
-    }
-    else if (R1_token.GetAccepted()) {
-        return Token(R1, R1_token.GetAcceptedLexeme());
+    // if no token matches then return an INVALID token
+    if(bestLength == 0) {
+        string bad(1, input[pos]);
+        pos++;
+        return Token("INVALID", bad);
     }
 
-    return Token(INVALID, string(1, input[pos++]));
+    pos += bestLength;
+    return Token(bestToken, bestLexeme);
 }
 
-
-//--------------------------------------------------------------
-// main
-//--------------------------------------------------------------
 int main() {
-    string input;
-    getline(cin, input);
-    Lexer lexer(input);
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
+    // read the token definitions (first line).
+    string tokenDefs;
+    getline(cin, tokenDefs);
+
+    // read the input string (next line).
+    string inputLine;
+    getline(cin, inputLine);
+    // remove surrounding quotes if present.
+    if(!inputLine.empty() && inputLine.front() == '"' && inputLine.back() == '"')
+        inputLine = inputLine.substr(1, inputLine.size()-2);
+
+    // create the lexer with the token definitions and input string
+    Lexer lexer(tokenDefs, inputLine);
+
+    // get tokens until EOS and print them
     Token token;
-
-    while ((token = lexer.getToken()).type != EOS)
-        cout << "Type: " << tokenNames[token.type] << "\t Value: " << token.value << endl;
+    while ((token = lexer.getToken()).tokenName != "EOS") {
+        cout << token.tokenName << " , \"" << token.lexeme << "\"" << "\n";
+    }
 
     return 0;
 }

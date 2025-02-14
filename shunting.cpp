@@ -121,7 +121,7 @@ NFA PostfixToNFA(const std::string& postfix) {
 //---------------------------------------------------------------------
 // main
 //---------------------------------------------------------------------
-int main() {
+int test() {
     string infix;
     cout << "Enter a regular expression: ";
     getline(cin, infix);

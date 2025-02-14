@@ -5,8 +5,6 @@ shunting.cpp // POSTFIX
 =====================================================================*/
 #include <iostream>
 #include <stack>
-#include <set>
-#include <map>
 #include <string>
 
 #include "NFA.h"
@@ -91,24 +89,38 @@ string InfixToPostfix(const string& infix) {
 //---------------------------------------------------------------------
 // convert a regular expression in postfix to an NFA using Thompson
 //---------------------------------------------------------------------
-NFA PostfixToNFA(const string& postfix)
-{
-    stack<NFA> nfa_stack;   // stack for NFAs
+NFA PostfixToNFA(const std::string& postfix) {
+    std::stack<NFA> nfa_stack;
 
-    for (size_t i = 0; i < postfix.size(); i++) {
-        char c = postfix[i];
-
-        if (IsOperand(c)) {
-
-        }
-        else if (c == '*') {
-
-        }
-        else if (c == '.') {
-
-        }
-        else if (c == '|') {
-
+    for (char c : postfix) {
+        if (isalpha(c)) {
+            NFA fragment;
+            int s0 = fragment.CreateNewState();
+            int s1 = fragment.CreateNewState();
+            fragment.SetInitialState(s0);
+            fragment.SetFinalState(s1);
+            fragment.AddTransition(s0, {s1}, c);
+            fragment.AddSymbol(c);
+            nfa_stack.push(fragment);
+        } else if (c == '*') {
+            NFA top = nfa_stack.top();
+            nfa_stack.pop();
+            top.Kleene();
+            nfa_stack.push(top);
+        } else if (c == '.') {
+            NFA b = nfa_stack.top();
+            nfa_stack.pop();
+            NFA a = nfa_stack.top();
+            nfa_stack.pop();
+            a.Concat(b);
+            nfa_stack.push(a);
+        } else if (c == '|') {
+            NFA b = nfa_stack.top();
+            nfa_stack.pop();
+            NFA a = nfa_stack.top();
+            nfa_stack.pop();
+            a.Union(b);
+            nfa_stack.push(a);
         }
     }
 

@@ -35,7 +35,7 @@ bool IsOperand(char c) {
 //---------------------------------------------------------------------
 string InfixToPostfix(const string& infix) {
     stack<char> ops;        // stack for operators
-    string postfix = "";    // resulting postfix expression 'queue'
+    string postfix;    // resulting postfix expression 'queue'
 
     for (size_t i = 0; i < infix.size(); i++) {
         char c = infix[i];

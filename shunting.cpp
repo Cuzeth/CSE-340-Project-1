@@ -6,7 +6,7 @@ shunting.cpp // POSTFIX
 #include <iostream>
 #include <stack>
 #include <string>
-
+#include <cctype>
 #include "NFA.h"
 
 using namespace std;
@@ -54,25 +54,16 @@ string InfixToPostfix(const string& infix) {
             }
             ops.pop();  // pop the '('
         }
-        else if (c == '|') {
-            // if it's an alternation operator, pop operators of higher precedence
+        else if (c == '|' || c == '.') {
             while (!ops.empty() && ops.top() != '(' && Precedence(ops.top()) >= Precedence(c)) {
                 postfix += ops.top();
                 ops.pop();
             }
-            ops.push(c);  // push the alternation operator onto the stack
-        }
-        else if (c == '.') {
-            // do same for concatenation (.)
-            while (!ops.empty() && ops.top() != '(' && Precedence(ops.top()) >= Precedence(c)) {
-                postfix += ops.top();
-                ops.pop();
-            }
-            ops.push(c);  // push the . operator onto the stack
+            ops.push(c);
         }
         else if (c == '*') {
-            // and for (*)
-            ops.push(c);  // push the * operator onto the stack
+            // since * is a postfix operator we can simply push it (it will be popped immediately when lower precedence is encountered)
+            ops.push(c);
         }
     }
 
@@ -138,7 +129,7 @@ int main() {
     string postfix = InfixToPostfix(infix);
     cout << "Postfix notation: " << postfix << endl;
 
-    NFA nfa = PostfixToNFA(postfix);
+    const NFA nfa = PostfixToNFA(postfix);
     nfa.Print();
 
     return 0;

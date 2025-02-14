@@ -8,4 +8,5 @@ add_executable(CSE_340_Project_1 main.cpp
         simple_parser.cpp
         shunting.cpp
         NFA.h
-        NFA.cpp)
+        NFA.cpp
+        shunting.h)

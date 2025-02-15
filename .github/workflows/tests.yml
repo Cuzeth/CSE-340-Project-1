@@ -54,8 +54,8 @@ jobs:
               continue
             fi
           
-            # Compare the output with expected output
-            if diff -Bw output.txt "${test}_expected.txt" > /dev/null 2>&1; then
+            # Compare the output with expected output, normalizing line endings
+            if diff -Bw <(tr -d '\r' < output.txt) <(tr -d '\r' < "${test}_expected.txt") > /dev/null 2>&1; then
               echo "✅ ${test} passed"
             else
               echo "❌ ${test} failed: Output mismatch"

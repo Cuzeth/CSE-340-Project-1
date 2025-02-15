@@ -16,17 +16,9 @@ Format:
 #include "DFA.h"
 #include "NFA.h"
 #include "shunting.h"
+#include "lexer.h"
 
 using namespace std;
-
-class Token {
-public:
-    Token(string t, string l) : tokenName(t), lexeme(l) {}
-    Token() : tokenName("EOS"), lexeme("") {}
-
-    string tokenName;
-    string lexeme;
-};
 
 DFA regexToDFA(const string& regex) {
     // convert regex from infix to postfix notation
@@ -36,20 +28,6 @@ DFA regexToDFA(const string& regex) {
     // convert the NFA to a DFA
     return nfa.NFA2DFA();
 }
-
-//--------------------------------------------------------------
-// reads a token definition string and an input string
-// token definitions are stored in order as a vector of (token name, DFA)
-//--------------------------------------------------------------
-class Lexer {
-public:
-    Lexer(const string& tokenDefs, const string& input);
-    Token getToken();
-private:
-    string input;
-    size_t pos;
-    vector<pair<string, DFA>> tokenDFAs;
-};
 
 Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0) {
     // tokenDefs is a string like:

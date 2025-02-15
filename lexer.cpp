@@ -56,6 +56,12 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
             regex = regex.substr(s2);
         // build the DFA
         DFA dfa = regexToDFA(regex);
+
+        if(dfa.AcceptsEmpty()) {
+            cout << "EPSILON IS NOT A TOKEN " << tokenName << " ";
+            continue;  // if it has epsilon, don't add it
+        }
+
         tokenDFAs.push_back({tokenName, dfa});
     }
 }
@@ -74,7 +80,7 @@ Token Lexer::getToken() {
     // simulate its DFA from the current input position
     for(auto& tokenDef : tokenDFAs) {
         string tokenName = tokenDef.first;
-        DFA dfa = tokenDef.second; // copy so that we don't modify the stored DFA
+        DFA dfa = tokenDef.second; // work with a copy
         dfa.Reset();
         int currentPos = pos;
         int acceptedLength = 0;

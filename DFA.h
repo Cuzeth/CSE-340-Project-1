@@ -27,6 +27,8 @@ public:
     bool GetAccepted() { return accepted; }
     void Print();
 
+    bool AcceptsEmpty() const;
+
 private:
     std::map<int, std::map<char, int>> Dtran;
     DFAstatus status;

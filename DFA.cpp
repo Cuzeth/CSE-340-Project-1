@@ -70,3 +70,10 @@ void DFA::Print() {
         cout << endl;
     }
 }
+//---------------------------------------------------------------------------------
+// check if the DFA accepts the empty string
+//---------------------------------------------------------------------------------
+bool DFA::AcceptsEmpty() const {
+    // check if initial state state is in the set of final states
+    return (fin_states.find(*init_states.begin()) != fin_states.end());
+}

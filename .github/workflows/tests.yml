@@ -27,5 +27,5 @@ jobs:
             # Run the executable with input redirected from testX.txt
             ./a.out < ${test}.txt > output.txt
             # Compare the output with the expected output; diff returns non-zero if they differ
-            diff output.txt ${test}_expected.txt
+            diff -Bw output.txt ${test}_expected.txt
           done

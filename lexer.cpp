@@ -42,7 +42,7 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
         size_t end = tokenDef.find_last_not_of(" \t");
         string trimmed = tokenDef.substr(start, end - start + 1);
         // stop if we hit the end marker '#'
-        if(trimmed == "#" || trimmed.find('#') != string::npos)
+        if(trimmed == "#")
             break;
         // expecting: tokenName regex
         istringstream iss2(trimmed);

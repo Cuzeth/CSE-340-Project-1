@@ -30,16 +30,37 @@ jobs:
           # Loop over each test case
           for test in test1 test2 test3; do
             echo "Running $test..."
+          
+            # Check if test input file exists
+            if [ ! -f "${test}.txt" ]; then
+              echo "❌ ${test} failed: Input file ${test}.txt not found"
+              overall_status=1
+              continue
+            fi
+          
+            # Check if expected output file exists
+            if [ ! -f "${test}_expected.txt" ]; then
+              echo "❌ ${test} failed: Expected output file ${test}_expected.txt not found"
+              overall_status=1
+              continue
+            fi
+          
             # Run the executable with input from testX.txt
-            ./a.out < ${test}.txt > output.txt
+            if ! ./a.out < "${test}.txt" > output.txt 2>&1; then
+              echo "❌ ${test} failed: Program execution error"
+              echo "Program output:"
+              cat output.txt
+              overall_status=1
+              continue
+            fi
           
             # Compare the output with expected output
-            if diff -Bw output.txt ${test}_expected.txt > /dev/null 2>&1; then
+            if diff -Bw output.txt "${test}_expected.txt" > /dev/null 2>&1; then
               echo "✅ ${test} passed"
             else
-              echo "❌ ${test} failed"
+              echo "❌ ${test} failed: Output mismatch"
               echo "Expected output:"
-              cat ${test}_expected.txt
+              cat "${test}_expected.txt"
               echo "Actual output:"
               cat output.txt
               overall_status=1

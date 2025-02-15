@@ -18,14 +18,40 @@ jobs:
         run: |
           # Compile main.cpp with C++17 standard
           g++ -std=c++17 *.cpp
-          
+          if [ $? -ne 0 ]; then
+            echo "Compilation failed"
+            exit 1
+          fi
+
       - name: Run tests
         run: |
+          # Initialize a variable to track overall test success
+          all_tests_passed=true
+          
           # Loop over each test case
           for test in test1 test2 test3; do
             echo "Running $test..."
-            # Run the executable with input redirected from testX.txt
+          
+            # Run the test and capture output
             ./a.out < ${test}.txt > output.txt
-            # Compare the output with the expected output; diff returns non-zero if they differ
-            diff -Bw output.txt ${test}_expected.txt
+          
+            # Compare output with expected output
+            if diff -Bw output.txt ${test}_expected.txt > diff_output.txt; then
+              echo "✅ $test passed"
+            else
+              echo "❌ $test failed"
+              echo "Differences found:"
+              cat diff_output.txt
+              all_tests_passed=false
+            fi
+            echo "----------------------------------------"
           done
+          
+          # Final status check
+          if [ "$all_tests_passed" = true ]; then
+            echo "All tests passed successfully! 🎉"
+            exit 0
+          else
+            echo "Some tests failed! 💔"
+            exit 1
+          fi

@@ -1,0 +1,31 @@
+name: C++ Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Compile C++ Program
+        run: |
+          # Compile main.cpp with C++17 standard
+          g++ -std=c++17 *.cpp
+          
+      - name: Run tests
+        run: |
+          # Loop over each test case
+          for test in test1 test2 test3; do
+            echo "Running $test..."
+            # Run the executable with input redirected from testX.txt
+            ./a.out < ${test}.txt > output.txt
+            # Compare the output with the expected output; diff returns non-zero if they differ
+            diff output.txt ${test}_expected.txt
+          done

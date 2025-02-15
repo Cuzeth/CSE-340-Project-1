@@ -34,6 +34,8 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
     //   "t1 a|b , t2 a*.a , t3 (a|b)*.c*.c #"
     istringstream iss(tokenDefs);
     string tokenDef;
+    // collect error messages for tokens that accept epsilon
+    vector<string> errors;
     while(getline(iss, tokenDef, ',')) {
         // trim leading/trailing whitespace
         size_t start = tokenDef.find_first_not_of(" \t");
@@ -58,11 +60,18 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
         DFA dfa = regexToDFA(regex);
 
         if(dfa.AcceptsEmpty()) {
-            cout << "EPSILON IS NOT A TOKEN " << tokenName << " ";
+            errors.push_back(tokenName);
             continue;  // if it has epsilon, don't add it
         }
 
         tokenDFAs.push_back({tokenName, dfa});
+    }
+    // if any epsilon tokens were detected, output errors and terminate
+    if(!errors.empty()){
+        cout << "EPSILON IS NOT A TOKEN ";
+        for(auto &e: errors)
+            cout << e << " ";
+        exit(1);  // stop the lexer from running
     }
 }
 
@@ -97,6 +106,7 @@ Token Lexer::getToken() {
             }
             currentPos++;
         }
+        // pick the token with the longest accepted lexeme
         if(acceptedLength > bestLength) {
             bestLength = acceptedLength;
             bestToken = tokenName;
@@ -119,14 +129,14 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // read the token definitions (first line).
+    // read the token definitions (first line)
     string tokenDefs;
     getline(cin, tokenDefs);
 
-    // read the input string (next line).
+    // read the input string (next line)
     string inputLine;
     getline(cin, inputLine);
-    // remove surrounding quotes if present.
+    // remove surrounding quotes if present
     if(!inputLine.empty() && inputLine.front() == '"' && inputLine.back() == '"')
         inputLine = inputLine.substr(1, inputLine.size()-2);
 

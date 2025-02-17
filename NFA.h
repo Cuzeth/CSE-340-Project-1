@@ -7,7 +7,6 @@
 //---------------------------------------------------------------------------------
 #include <set>
 #include <map>
-#include <vector>
 #include "DFA.h"
 
 class NFA {

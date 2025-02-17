@@ -80,8 +80,8 @@ string InfixToPostfix(const string& infix) {
 //---------------------------------------------------------------------
 // convert a regular expression in postfix to an NFA using Thompson
 //---------------------------------------------------------------------
-NFA PostfixToNFA(const std::string& postfix) {
-    std::stack<NFA> nfa_stack;
+NFA PostfixToNFA(const string& postfix) {
+    stack<NFA> nfa_stack;
 
     for (char c : postfix) {
         if (isalpha(c)) {

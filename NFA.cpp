@@ -5,7 +5,9 @@
 #include <stack>
 #include <queue>
 
-void NFA::AddTransition(const int src, const std::set<int>& dst, const char sym) {
+using namespace std;
+
+void NFA::AddTransition(const int src, const set<int>& dst, const char sym) {
     // just add new destination states to what we already have
     Ntran[src][sym].insert(dst.begin(), dst.end());
     if (src > max_node_label) {
@@ -19,9 +21,6 @@ void NFA::AddTransition(const int src, const std::set<int>& dst, const char sym)
 }
 
 void NFA::Union(const NFA& other) {
-    // grab current max label from left nfa
-    int left_max = max_node_label;
-
     // make new init and final states for union
     int new_initial = CreateNewState(); // new_initial is left_max+1
     int new_final   = CreateNewState(); // new_final is left_max+2
@@ -47,8 +46,8 @@ void NFA::Union(const NFA& other) {
         int src = src_entry.first + offset;
         for (const auto& sym_entry : src_entry.second) {
             char sym = sym_entry.first;
-            std::set<int> dst = sym_entry.second;
-            std::set<int> renamed_dst;
+            set<int> dst = sym_entry.second;
+            set<int> renamed_dst;
             for (int s : dst) {
                 renamed_dst.insert(s + offset);
             }
@@ -73,8 +72,8 @@ void NFA::Concat(const NFA& other) {
         int src = src_entry.first + offset;
         for (const auto& sym_entry : src_entry.second) {
             char sym = sym_entry.first;
-            std::set<int> dst = sym_entry.second;
-            std::set<int> renamed_dst;
+            set<int> dst = sym_entry.second;
+            set<int> renamed_dst;
             for (int s : dst) {
                 renamed_dst.insert(s + offset);
             }
@@ -112,23 +111,23 @@ void NFA::Kleene() {
 }
 
 void NFA::Print() const {
-    std::cout << "Initial state: " << init_state << std::endl;
-    std::cout << "Final states: ";
+    cout << "Initial state: " << init_state << endl;
+    cout << "Final states: ";
     for (int f : fin_states) {
-        std::cout << f << " ";
+        cout << f << " ";
     }
-    std::cout << std::endl;
-    std::cout << "Transitions:" << std::endl;
+    cout << endl;
+    cout << "Transitions:" << endl;
     for (const auto& src_entry : Ntran) {
         int src = src_entry.first;
         for (const auto& sym_entry : src_entry.second) {
             char sym = sym_entry.first;
-            const std::set<int>& dst = sym_entry.second;
-            std::cout << src << " --" << sym << "--> ";
+            const set<int>& dst = sym_entry.second;
+            cout << src << " --" << sym << "--> ";
             for (int d : dst) {
-                std::cout << d << " ";
+                cout << d << " ";
             }
-            std::cout << std::endl;
+            cout << endl;
         }
     }
 }
@@ -138,9 +137,9 @@ void NFA::Print() const {
 // reachable from them via epsilon transitions (zero or more moves)
 //----------------------------------------------------------------------
 
-std::set<int> NFA::EpsilonClosure(const std::set<int>& states) {
-    std::set<int> closure = states;
-    std::stack<int> stateStack;
+set<int> NFA::EpsilonClosure(const set<int>& states) {
+    set<int> closure = states;
+    stack<int> stateStack;
 
     // push all the states into the stack
     for (int s : states) {
@@ -177,17 +176,17 @@ std::set<int> NFA::EpsilonClosure(const std::set<int>& states) {
 
 DFA NFA::NFA2DFA() {
     // map each subset of nfa states to a unique dfa state (integer)
-    std::map<std::set<int>, int> subsetToDFA;
+    map<set<int>, int> subsetToDFA;
     int nextDFAState = 0;
-    std::queue<std::set<int>> unprocessed;
+    queue<set<int>> unprocessed;
 
     // the initial dfa state is the epsilon-closure of the nfa's init state
-    std::set<int> startSubset = EpsilonClosure({init_state});
+    set<int> startSubset = EpsilonClosure({init_state});
     subsetToDFA[startSubset] = nextDFAState++;
     unprocessed.push(startSubset);
 
     // figure out which dfa states are final
-    std::set<int> DFAfinalStates;
+    set<int> DFAfinalStates;
     // if any nfa state in the start subset is final, mark dfa state 0 as final
     for (int s : startSubset) {
         if (fin_states.find(s) != fin_states.end()) {
@@ -197,11 +196,11 @@ DFA NFA::NFA2DFA() {
     }
 
     // temporary structure for dfa transitions, not that it matters
-    std::map<int, std::map<char, int>> dfaTransitions;
+    map<int, map<char, int>> dfaTransitions;
 
     // for each unprocessed dfa state (which is a subset of nfa states)
     while (!unprocessed.empty()) {
-        std::set<int> currentSubset = unprocessed.front();
+        set<int> currentSubset = unprocessed.front();
         unprocessed.pop();
         int currentDFAState = subsetToDFA[currentSubset];
 
@@ -211,7 +210,7 @@ DFA NFA::NFA2DFA() {
                 continue;
 
             // compute the set of states reachable on symbol sym
-            std::set<int> moveSet;
+            set<int> moveSet;
             for (int s : currentSubset) {
                 if (Ntran.find(s) != Ntran.end()) {
                     auto it = Ntran[s].find(sym);
@@ -221,7 +220,7 @@ DFA NFA::NFA2DFA() {
                 }
             }
             // take the epsilon closure of the reached states
-            std::set<int> nextSubset = EpsilonClosure(moveSet);
+            set<int> nextSubset = EpsilonClosure(moveSet);
 
             if (nextSubset.empty())
                 continue; // no transition on this symbol, so skip
@@ -247,13 +246,13 @@ DFA NFA::NFA2DFA() {
     }
 
     // construct the dfa; the dfa's alphabet is the nfa's alphabet without epsilon
-    std::set<char> dfaAlphabet;
+    set<char> dfaAlphabet;
     for (char sym : alphabet) {
         if (sym != epsilon)
             dfaAlphabet.insert(sym);
     }
     // the initial dfa state is 0
-    std::set<int> dfaInitial = {0};
+    set<int> dfaInitial = {0};
     DFA dfa(dfaAlphabet, dfaInitial, DFAfinalStates);
 
     // add transitions to the dfa

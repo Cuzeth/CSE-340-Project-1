@@ -22,7 +22,7 @@ using namespace std;
 
 DFA regexToDFA(const string& regex) {
     // convert regex from infix to postfix notation
-    string postfix = InfixToPostfix(regex);
+    const string postfix = InfixToPostfix(regex);
     // build the NFA from the postfix regex
     NFA nfa = PostfixToNFA(postfix);
     // convert the NFA to a DFA
@@ -31,7 +31,7 @@ DFA regexToDFA(const string& regex) {
 
 Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0) {
     // tokenDefs is a string like:
-    //   "t1 a|b , t2 a*.a , t3 (a|b)*.c*.c #"
+    // "t1 a|b , t2 a*.a , t3 (a|b)*.c*.c #"
     istringstream iss(tokenDefs);
     string tokenDef;
     // collect error messages for tokens that accept epsilon

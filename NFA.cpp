@@ -22,33 +22,33 @@ void NFA::AddTransition(const int src, const set<int>& dst, const char sym) {
 
 void NFA::Union(const NFA& other) {
     // make new init and final states for union
-    int new_initial = CreateNewState(); // new_initial is left_max+1
-    int new_final   = CreateNewState(); // new_final is left_max+2
+    const int new_initial = CreateNewState(); // new_initial is left_max+1
+    int new_final = CreateNewState(); // new_final is left_max+2
 
     // calculate offset for the other nfa since we already added two new states
-    int offset = max_node_label + 1; // offset becomes left_max+3
+    const int offset = max_node_label + 1; // offset becomes left_max+3
 
     // add epsilon transitions from new init state to both the old init and shifted other nfa's init
     AddTransition(new_initial, {init_state}, epsilon);
     AddTransition(new_initial, {other.init_state + offset}, epsilon);
 
     // for each final state in left nfa, add an epsilon transition to new final state
-    for (int f : fin_states) {
+    for (const int f : fin_states) {
         AddTransition(f, {new_final}, epsilon);
     }
     // do the same for each final state in the other nfa, after shifting
-    for (int f : other.fin_states) {
+    for (const int f : other.fin_states) {
         AddTransition(f + offset, {new_final}, epsilon);
     }
 
     // copy over transitions from the other nfa, bumping each state by the offset
     for (const auto& src_entry : other.Ntran) {
-        int src = src_entry.first + offset;
+        const int src = src_entry.first + offset;
         for (const auto& sym_entry : src_entry.second) {
-            char sym = sym_entry.first;
+            const char sym = sym_entry.first;
             set<int> dst = sym_entry.second;
             set<int> renamed_dst;
-            for (int s : dst) {
+            for (const int s : dst) {
                 renamed_dst.insert(s + offset);
             }
             AddTransition(src, renamed_dst, sym);
@@ -65,28 +65,28 @@ void NFA::Union(const NFA& other) {
 }
 
 void NFA::Concat(const NFA& other) {
-    int original_max = max_node_label;
-    int offset = original_max + 1;
+    const int original_max = max_node_label;
+    const int offset = original_max + 1;
 
     for (const auto& src_entry : other.Ntran) {
-        int src = src_entry.first + offset;
+        const int src = src_entry.first + offset;
         for (const auto& sym_entry : src_entry.second) {
-            char sym = sym_entry.first;
+            const char sym = sym_entry.first;
             set<int> dst = sym_entry.second;
             set<int> renamed_dst;
-            for (int s : dst) {
+            for (const int s : dst) {
                 renamed_dst.insert(s + offset);
             }
             AddTransition(src, renamed_dst, sym);
         }
     }
 
-    for (int f : fin_states) {
+    for (const int f : fin_states) {
         AddTransition(f, {other.init_state + offset}, epsilon);
     }
 
     fin_states.clear();
-    for (int f : other.fin_states) {
+    for (const int f : other.fin_states) {
         fin_states.insert(f + offset);
     }
 
@@ -94,13 +94,13 @@ void NFA::Concat(const NFA& other) {
 }
 
 void NFA::Kleene() {
-    int new_initial = CreateNewState();
+    const int new_initial = CreateNewState();
     int new_final = CreateNewState();
 
     AddTransition(new_initial, {init_state}, epsilon);
     AddTransition(new_initial, {new_final}, epsilon);
 
-    for (int f : fin_states) {
+    for (const int f : fin_states) {
         AddTransition(f, {init_state}, epsilon);
         AddTransition(f, {new_final}, epsilon);
     }
@@ -113,18 +113,18 @@ void NFA::Kleene() {
 void NFA::Print() const {
     cout << "Initial state: " << init_state << endl;
     cout << "Final states: ";
-    for (int f : fin_states) {
+    for (const int f : fin_states) {
         cout << f << " ";
     }
     cout << endl;
     cout << "Transitions:" << endl;
     for (const auto& src_entry : Ntran) {
-        int src = src_entry.first;
+        const int src = src_entry.first;
         for (const auto& sym_entry : src_entry.second) {
             char sym = sym_entry.first;
             const set<int>& dst = sym_entry.second;
             cout << src << " --" << sym << "--> ";
-            for (int d : dst) {
+            for (const int d : dst) {
                 cout << d << " ";
             }
             cout << endl;
@@ -136,7 +136,6 @@ void NFA::Print() const {
 // epsilonclosure: given a set of nfa states, return the set of states
 // reachable from them via epsilon transitions (zero or more moves)
 //----------------------------------------------------------------------
-
 set<int> NFA::EpsilonClosure(const set<int>& states) {
     set<int> closure = states;
     stack<int> stateStack;
@@ -173,7 +172,6 @@ set<int> NFA::EpsilonClosure(const set<int>& states) {
 // nfa2dfa: convert this nfa into an equivalent dfa using the subset
 // construction algorithm
 //----------------------------------------------------------------------
-
 DFA NFA::NFA2DFA() {
     // map each subset of nfa states to a unique dfa state (integer)
     map<set<int>, int> subsetToDFA;
@@ -213,8 +211,7 @@ DFA NFA::NFA2DFA() {
             set<int> moveSet;
             for (int s : currentSubset) {
                 if (Ntran.find(s) != Ntran.end()) {
-                    auto it = Ntran[s].find(sym);
-                    if (it != Ntran[s].end()) {
+                    if (auto it = Ntran[s].find(sym); it != Ntran[s].end()) {
                         moveSet.insert(it->second.begin(), it->second.end());
                     }
                 }

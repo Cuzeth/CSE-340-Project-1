@@ -53,8 +53,7 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
         iss2 >> tokenName;
         getline(iss2, regex); // the rest is the regex
         // remove any leading spaces from the regex
-        size_t s2 = regex.find_first_not_of(" \t");
-        if(s2 != string::npos)
+        if(size_t s2 = regex.find_first_not_of(" \t"); s2 != string::npos)
             regex = regex.substr(s2);
         // build the DFA
         DFA dfa = regexToDFA(regex);
@@ -64,7 +63,7 @@ Lexer::Lexer(const string& tokenDefs, const string& input) : input(input), pos(0
             continue;  // if it has epsilon, don't add it
         }
 
-        tokenDFAs.push_back({tokenName, dfa});
+        tokenDFAs.emplace_back(tokenName, dfa);
     }
     // if any epsilon tokens were detected, output errors and terminate
     if(!errors.empty()){
@@ -80,7 +79,7 @@ Token Lexer::getToken() {
     while (pos < input.size() && isspace(input[pos]))
         pos++;
     if (pos >= input.size())
-        return Token("EOS", "");
+        return {"EOS", ""};
 
     int bestLength = 0;
     string bestToken;
@@ -88,15 +87,15 @@ Token Lexer::getToken() {
 
     // simulate its DFA from the current input position
     for(auto& tokenDef : tokenDFAs) {
-        string tokenName = tokenDef.first;
+        const string tokenName = tokenDef.first;
         DFA dfa = tokenDef.second; // work with a copy
         dfa.Reset();
-        int currentPos = pos;
+        int currentPos = static_cast<int>(pos);
         int acceptedLength = 0;
         string acceptedLex;
         // process input characters until fail
         while (currentPos < input.size()) {
-            char c = input[currentPos];
+            const char c = input[currentPos];
             dfa.Move(c);
             if(dfa.GetStatus() == FAIL)
                 break;
@@ -118,11 +117,11 @@ Token Lexer::getToken() {
     if(bestLength == 0) {
         string bad(1, input[pos]);
         pos++;
-        return Token("INVALID", bad);
+        return {"INVALID", bad};
     }
 
     pos += bestLength;
-    return Token(bestToken, bestLexeme);
+    return {bestToken, bestLexeme};
 }
 
 int main() {

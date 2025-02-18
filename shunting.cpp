@@ -14,7 +14,7 @@ using namespace std;
 //---------------------------------------------------------------------
 // define precedence and associativity of operators
 //---------------------------------------------------------------------
-int Precedence(char op) {
+int Precedence(const char op) {
     if (op == '*') return 3;  // highest precedence for Kleene star (*)
     if (op == '.') return 2;  // concatenation (.) has lower precedence than *
     if (op == '|') return 1;  // alternation (|) has the lowest precedence
@@ -24,7 +24,7 @@ int Precedence(char op) {
 //---------------------------------------------------------------------
 // check if a character is an operand (alpha)
 //---------------------------------------------------------------------
-bool IsOperand(char c) {
+bool IsOperand(const char c) {
     return isalpha(c);
 }
 
@@ -35,14 +35,13 @@ string InfixToPostfix(const string& infix) {
     stack<char> ops;        // stack for operators
     string postfix;    // resulting postfix expression 'queue'
 
-    for (size_t i = 0; i < infix.size(); i++) {
-        char c = infix[i];
-
+    for (char c : infix) {
         if (IsOperand(c)) {
             // if c is an operand, put it on the output queue
             postfix += c;
         }
-        else if (c == '(') {
+        else if (c == '(' || c == '*') {
+            // since * is a postfix operator we can simply push it (it will be popped immediately when lower precedence is encountered)
             // if it's an opening parenthesis, push it onto the stack
             ops.push(c);
         }
@@ -59,10 +58,6 @@ string InfixToPostfix(const string& infix) {
                 postfix += ops.top();
                 ops.pop();
             }
-            ops.push(c);
-        }
-        else if (c == '*') {
-            // since * is a postfix operator we can simply push it (it will be popped immediately when lower precedence is encountered)
             ops.push(c);
         }
     }
@@ -116,21 +111,4 @@ NFA PostfixToNFA(const string& postfix) {
     }
 
     return nfa_stack.top();
-}
-
-//---------------------------------------------------------------------
-// main
-//---------------------------------------------------------------------
-int test() {
-    string infix;
-    cout << "Enter a regular expression: ";
-    getline(cin, infix);
-
-    string postfix = InfixToPostfix(infix);
-    cout << "Postfix notation: " << postfix << endl;
-
-    const NFA nfa = PostfixToNFA(postfix);
-    nfa.Print();
-
-    return 0;
 }

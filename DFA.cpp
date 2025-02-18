@@ -49,7 +49,7 @@ void DFA::Move(char c) {
 //---------------------------------------------------------------------------------
 bool DFA::Run(const string& input) {
     Reset();
-    for (char c : input) {
+    for (const char c : input) {
         Move(c);
         if (status == FAIL)
             break;
@@ -60,7 +60,7 @@ bool DFA::Run(const string& input) {
 //---------------------------------------------------------------------------------
 // print the DFA
 //---------------------------------------------------------------------------------
-void DFA::Print() {
+void DFA::Print() const {
     cout << "DFA Transitions:\n";
     for (const auto& row : Dtran) {
         cout << row.first << ":\t";

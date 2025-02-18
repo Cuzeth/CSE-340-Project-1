@@ -25,7 +25,7 @@ public:
     DFAstatus GetStatus() { return status; }
     string GetAcceptedLexeme() { return accepted_lexeme; }
     bool GetAccepted() { return accepted; }
-    void Print();
+    void Print() const;
 
     bool AcceptsEmpty() const;
 
